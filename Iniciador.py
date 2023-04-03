@@ -101,7 +101,7 @@ for remote_url, local_file in zip(remote_urls, local_files):
         print ("No se encontro el siguiente URL: " + remote_url)
 
 # D:\MSI\Documentos\PROYECTO DE ASFI\IDEPRO IFD
-my_dir = "D:\\MSI\\Documentos\\PROYECTO DE ASFI\\IDEPRO IFD" # Ruta de archivos ZIP
+my_dir = "D:\\MSI\\Documentos\\PROYECTO DE ASFI\\Proyecto-ASFI" # Ruta de archivos ZIP
 files_Zip = [file_BDR_EF, file_BMU_EF, file_BPY_EF, file_EFV_EF, file_COO_EF, file_IFD_EF, file_BDR_I, file_BMU_I, file_BPY_I, file_EFV_I, file_COO_I, file_IFD_I]
 excel_EF = ["", "", "","", "", ""]
 excel_I = ["", "", "","", "", ""]
