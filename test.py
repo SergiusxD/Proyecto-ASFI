@@ -1,29 +1,15 @@
 import pandas as pd
 
-# Crear DataFrame de ejemplo
-df = pd.DataFrame({'col1': ['"valor1"', '"valor2"'], 'col2': ['"valor3"', '"valor4"']})
+# creamos un DataFrame de ejemplo
+df = pd.DataFrame({'A': [1, 2, 3], 'B': ['h', 'mundo', 'k'], 'C': ['foo', 'bar', 'baz'], 
+                   'D': [4, 5, 6], 'E': ['hola', 'mundo', 'hola'], 'F': ['foo', 'bar', 'baz'],
+                   'G': [7, 8, 9], 'H': ['hola', 'mundo', 'hola'], 'I': ['TOTAL SISTEMA', 'bar', 'baz'],
+                   'J': [10, 11, 12]})
 print(df)
 
-# Eliminar comillas dobles
-df = df.replace('"', '', regex=True)
-print(df)
+# Encontrar la columna que contiene la palabra "hola"
+ultima_cols = df.columns[df.apply(lambda x: x.astype(str).str.contains('TOTAL SISTEMA')).any()]
+col_idx = df.columns.get_loc(ultima_cols[0])
 
-
-engine = create_engine('mysql+mysqlconnector://root:Hels1962*@localhost/Datos')
-
-for archivo in excel_EF:
-    # Leer el archivo de Excel en un DataFrame de Pandas
-    df = pd.read_excel(archivo, sheet_name='Datos')
-
-    # Escribir el DataFrame en la base de datos
-    df.to_sql(name='estados_financieros', con=engine, if_exists='append', index=False)
-
-for archivo in excel_I:
-    # Leer el archivo de Excel en un DataFrame de Pandas
-    df = pd.read_excel(archivo, sheet_name='Datos')
-
-    # Escribir el DataFrame en la base de datos
-    df.to_sql(name='indicadores_financieros', con=engine, if_exists='append', index=False)
-
-# Cerrar la conexión
-engine.dispose()
+# Crear un nuevo DataFrame con las columnas hasta la columna encontrada
+df = df.iloc[:, :col_idx+1]

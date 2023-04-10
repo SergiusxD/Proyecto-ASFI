@@ -12,9 +12,9 @@ import re
 
 now = datetime.now()
 # Month = now.month
-Month = 1
+Month = 2
 # Year = now.year
-Year = 2018
+Year = 2021
 # print (Year)
 # print (Month)
 file_BDR_EF = "BDR_EstadosFinancieros.zip"
@@ -34,6 +34,7 @@ file_IFD_I = "IFD_IndicadoresFinancieros.zip"
 if Month == 1:
     newYear = Year - 1
     Month = 12
+    mes = Month
     #Definiendo el Mes en Numero
     def current_date_format(Month):
         months = ("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
@@ -47,6 +48,7 @@ if Month == 1:
 
 else:
     newMonth = Month - 1
+    mes = Month - 1
     #Definiendo el Mes en Numero
     def current_date_format(newMonth):
         months = ("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
@@ -146,6 +148,14 @@ else:
         excel1 = pd.read_excel(excel_I[name], header=None)
         info = pd.DataFrame(excel1)
         pd.set_option('display.max_rows', None)
+
+        #print (info)
+        # Encontrar la columna que contiene la palabra "TOTAL SISTEMA"
+        ultima_cols = info.columns[info.apply(lambda x: x.astype(str).str.contains('TOTAL SISTEMA')).any()]
+        col_idx = info.columns.get_loc(ultima_cols[0])
+        info = info.iloc[:, :col_idx+1]
+        #print (info)
+
         if nowYear < 2020:
             tipo_indentidad = info.loc[1][0]
             if tipo_indentidad == 'BANCOS DE DESARROLLO PRODUCTIVO':
@@ -201,7 +211,7 @@ else:
         fecha = split[5] + "-" +  out + "-" + split[1]
 
         if nowYear < 2020:
-            # Borror la basura de las 6 lineas
+            # Borror la basura de las 7 lineas
             info.drop([0,1,2,3,4,5,6], axis=0, inplace=True)
             info = info.reset_index(drop=True) # Reinicio de las filas y columnas
             info[0] = info[0].str.strip()
@@ -219,7 +229,7 @@ else:
             idx = info.index[info[0].str.contains('Activo improductivo/Patrimonio', na=False)].tolist()[0]
             info = info.drop(info.index[idx+1:idx+7])
             
-        print (info)
+        #print (info)
         info = info.reset_index(drop=True) # Reinicio de las filas y columnas
         # Borro lineas basura
         index_to_drop = info.loc[info[0] == 'UTILIDAD NETA'].index[0]
@@ -940,12 +950,34 @@ else:
             return '460.00'
         elif Columna.endswith('(=) RESULTADO NETO DE LA GESTIÓN'):
             return 'CC0.08 - 460.00'
+        elif re.search(r'\bDOCUMENTOS DE COBRO INMEDIATO\b', Columna):
+            return '117.00'
+        elif re.search(r'\bObligaciones con bancos y otras entidades del país a plazo\b', Columna):
+            return '235.00'
+        elif re.search(r'\bObligaciones con bancos y otras entidades del país a plazo\b', Columna):
+            return '235.00'
+        elif re.search(r'\bPAGARÉS BURSÁTILES\b', Columna):
+            return '263.00'
+        elif re.search(r'\bBOLETAS DE GARANTÍA NO CONTRAGARANTIZADAS\b', Columna):
+            return '623.00'
+        elif re.search(r'\bGARANTÍAS TRANSFERIDAS PARA TITULARIZACIÓN\b', Columna):
+            return '92.00'
+        elif re.search(r'\bOPERACIONES DE COMPRA Y VENTA A FUTURO DE MONEDA EXTRANJERA\b', Columna):
+            return '867.00'
+        
 
     for name in range(len(excel_EF)):
         # Modificar los excels descargados INDICADORES
         excel2 = pd.read_excel(excel_EF[name], header=None)
         info = pd.DataFrame(excel2)
         pd.set_option('display.max_rows', None)
+
+        #print (info)
+        # Encontrar la columna que contiene la palabra "TOTAL SISTEMA"
+        ultima_cols = info.columns[info.apply(lambda x: x.astype(str).str.contains('TOTAL SISTEMA')).any()]
+        col_idx = info.columns.get_loc(ultima_cols[0])
+        info = info.iloc[:, :col_idx+1]
+        #print (info)
 
         if nowYear < 2020:
             tipo_indentidad = info.loc[1][0]
@@ -1002,15 +1034,17 @@ else:
         fecha = split[5] + "-" +  out + "-" + split[1]
 
         if nowYear < 2020:
-            # Borror la basura de las 6 lineas
+            # Borror la basura de las 7 lineas
             info.drop([0,1,2,3,4,5,6], axis=0, inplace=True)
             info = info.reset_index(drop=True) # Reinicio de las filas y columnas
             info[0] = info[0].str.strip()
         else:
             # Borror la basura de las 4 lineas
-            info.drop([0,1,2,3], axis=0, inplace=True)
+            info = info.dropna(subset=[1])
             info = info.reset_index(drop=True) # Reinicio de las filas y columnas
             info[0] = info[0].str.strip()
+        
+        #print (info)
         
         num_columnas = info.shape[1] - 1
 
@@ -1037,7 +1071,7 @@ else:
 
         # agregar la columna de grupos al dataframe
         info['Group'] = groups
-
+        #print (info)
         #info[0,'Group'] = info[0,'Group'].replace(r'\bACTIVO\b(?!\s*\+)', 'Dimension1', regex=True)
         #info[0,'Group'] = info[0,'Group'].replace(r'\bPASIVO\b(?!\s*\+)', 'Dimension1.1', regex=True)
         info['Group'] = info['Group'].replace('Dimension1', 'ACTIVO')
@@ -1057,10 +1091,10 @@ else:
         info[0] = info[0].replace({'\s+': ' '}, regex=True).str.strip()
         info = info.replace('"', '', regex=True)
 
-
+        #print (info)
         info_estados = info.loc[:, [0, 'Group']]
         info_estados = info_estados.dropna(subset=[0])
-
+        #print (info_estados)
         #Modificando los nombres para poner los codigos
         info_estados.iloc[:50, info_estados.columns.get_loc(0)] = info_estados.iloc[:50, info_estados.columns.get_loc(0)].replace('INVERSIONES EN EL BANCO CENTRAL DE BOLIVIA', 'Cambiado')
         info_estados.iloc[:70, info_estados.columns.get_loc(0)] = info_estados.iloc[:70, info_estados.columns.get_loc(0)].replace('DIVERSAS', 'Cambiado2')
@@ -1085,7 +1119,7 @@ else:
         info_estados[0] = info_estados[0].replace('PRODUCTOS DE CARTERA EN EJECUCIÓN REPROGRAMADA O REESTRUCTURADA', 'Cambiado21')
 
         # Esto seria para reparar los error que existen en sintaxis o espacios que se olvidan en la cuenta
-        if nowYear < 2020:
+        if nowYear <= 2022:
             info_estados[0] = info_estados[0].replace('(=)RESULTADO NETO DE LA GESTIÓN', '(=) RESULTADO NETO DE LA GESTIÓN')
             info_estados[0] = info_estados[0].replace('(=)RESULTADO ANTES DE IMPTOS. Y AJUSTE CONTABLE POR EFECTO DE INFLACIÓN', '(=) RESULTADO ANTES DE IMPUESTOS Y AJUSTE CONTABLE POR EFECTO DE INFLACIÓN')
             info_estados[0] = info_estados[0].replace('(=)RESULTADO NETO DEL EJERCICIO ANTES DE AJUSTES DE GESTIONES ANTERIORES', '(=) RESULTADO NETO DEL EJERCICIO ANTES DE AJUSTES DE GESTIONES ANTERIORES')
@@ -1125,7 +1159,7 @@ else:
         info_estados[0] = info_estados[0].replace('Cambiado19', '(PREVISIÓN PARA PARTIDAS PENDIENTES DE IMPUTACIÓN)')
         info_estados[0] = info_estados[0].replace('Cambiado20', 'PRODUCTOS DE CARTERA EN EJECUCIÓN')
         info_estados[0] = info_estados[0].replace('Cambiado21', 'PRODUCTOS DE CARTERA EN EJECUCIÓN REPROGRAMADA O REESTRUCTURADA')
-
+        #print (info_estados)
 
 
         #Multiplicamos la tabla deacuerdo a las columnas o las entidas que se tenga
