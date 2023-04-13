@@ -11,10 +11,10 @@ import os
 import re
 
 now = datetime.now()
-# Month = now.month
-Month = 2
-# Year = now.year
-Year = 2021
+Month = now.month
+#Month = 2
+Year = now.year
+#Year = 2021
 # print (Year)
 # print (Month)
 file_BDR_EF = "BDR_EstadosFinancieros.zip"
@@ -964,6 +964,12 @@ else:
             return '92.00'
         elif re.search(r'\bOPERACIONES DE COMPRA Y VENTA A FUTURO DE MONEDA EXTRANJERA\b', Columna):
             return '867.00'
+        elif re.search(r'\bCUENTAS ACREEDORAS DE LOS PATRIMONIOS AUTÓNOMOS CONSTITUIDOS CON RECURSOS PRIVADOS\b', Columna):
+            return '970.00'
+        elif re.search(r'\bCUENTAS ACREEDORAS DE LOS PATRIMONIOS AUTÓNOMOS CONSTITUIDOS CON RECURSOS DEL ESTADO\b', Columna):
+            return '980.00'
+        elif re.search(r'\bPrevisiones por constituir sujetas a cronograma\b', Columna):
+            return '869.90'
         
 
     for name in range(len(excel_EF)):
@@ -1132,6 +1138,10 @@ else:
             info_estados[0] = info_estados[0].replace('Depositos a plazo fijo mayor a 720 a 1.080 días', 'Depósitos a plazo fijo de 721 a 1.080 días')
             info_estados[0] = info_estados[0].replace('Depositos a plazo fijo mayor a 1.080 días', 'Depósitos a plazo fijo mayor a 1.080 días')
             info_estados[0] = info_estados[0].replace('RENDIMIENTOS POR COBRAR POR FIDEICOMISOS)', 'RENDIMIENTOS POR COBRAR POR FIDEICOMISOS')
+            info_estados[0] = info_estados[0].replace('(Previsión especifica para incobrabilidad de cartera reprogramada o reestructurada vigente)', '(Previsión específica para incobrabilidad de cartera reprogramada o reestructurada vigente)')
+            info_estados[0] = info_estados[0].replace('(Previsión especifica para incobrabilidad de cartera reprogramada o reestructurada vencida)', '(Previsión específica para incobrabilidad de cartera reprogramada o reestructurada vencida)')
+            info_estados[0] = info_estados[0].replace('(=) RESULTADO DESPUES DE AJUSTE POR DIF. DE CAMBIO Y MANTENIM. DE VALOR', '(=) RESULTADO DESPUES DE AJUSTE POR DIFERENCIA DE CAMBIO Y MANTENIMIENTO DE VALOR')
+            info_estados[0] = info_estados[0].replace('(=) RESULTADO ANTES DE IMPTOS. Y AJUSTE CONTABLE POR EFECTO DE INFLACIÓN', '(=) RESULTADO ANTES DE IMPUESTOS Y AJUSTE CONTABLE POR EFECTO DE INFLACIÓN')
 
 
         #Aplicamos los codigos a las Cuentas
@@ -1240,3 +1250,5 @@ else:
     # eliminar archivos en excel_EF
     for archivo in excel_EF:
         os.remove(archivo)
+    
+    print ("TERMINE!")
