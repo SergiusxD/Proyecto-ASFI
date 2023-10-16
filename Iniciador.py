@@ -10,13 +10,48 @@ from sqlalchemy import create_engine, text
 import os
 import re
 
-now = datetime.now()
-Month = now.month
-#Month = 2
-Year = now.year
-#Year = 2021
-# print (Year)
-# print (Month)
+def guardar_fecha_actual(year, month):
+    fecha_actual = f"{year}-{month}"
+    
+    try:
+        with open("fecha_actual.txt", "w") as archivo:
+            archivo.write(fecha_actual)
+        print("Fecha actual guardada en el archivo fecha_actual.txt")
+    except Exception as e:
+        print("Error al guardar la fecha actual:", str(e))
+
+def leer_fecha_guardada():
+    try:
+        with open("fecha_actual.txt", "r") as archivo:
+            fecha_actual = archivo.read()
+        return fecha_actual.split("-")  # Devolver año y mes por separado
+    except Exception as e:
+        print("Error al leer la fecha guardada:", str(e))
+        return None
+
+def verificar_archivo_existente(nombre_archivo):
+    return os.path.exists(nombre_archivo)
+
+nombre_archivo = "fecha_actual.txt"
+
+if verificar_archivo_existente(nombre_archivo):
+    # El archivo existe, puedes proceder a leerlo o realizar otras operaciones
+    fecha_guardada = leer_fecha_guardada()
+    if fecha_guardada:
+        Year = int(fecha_guardada[0])
+        Month = int(fecha_guardada[1])
+else:
+    # El archivo no existe
+    now = datetime.now()
+    Month = now.month
+    #Month = 1
+    Year = now.year
+    #Year = 2018
+    # print (Year)
+    # print (Month)
+    print("El archivo", nombre_archivo, "no existe.")
+    
+
 file_BDR_EF = "BDR_EstadosFinancieros.zip"
 file_BMU_EF = "BMU_EstadosFinancieros.zip"
 file_BPY_EF = "BPY_EstadosFinancieros.zip"
@@ -101,6 +136,7 @@ for remote_url, local_file in zip(remote_urls, local_files):
         request.urlretrieve(remote_url, local_file)
     except:
         print ("No se encontro el siguiente URL: " + remote_url)
+        guardar_fecha_actual(Year, Month)
 
 # D:\MSI\Documentos\PROYECTO DE ASFI\IDEPRO IFD
 my_dir = "D:\\MSI\\Documentos\\PROYECTO DE ASFI\\Proyecto-ASFI" # Ruta de archivos ZIP
@@ -154,13 +190,17 @@ else:
         ultima_cols = info.columns[info.apply(lambda x: x.astype(str).str.contains('TOTAL SISTEMA')).any()]
         col_idx = info.columns.get_loc(ultima_cols[0])
         info = info.iloc[:, :col_idx+1]
-        #print (info)
+        print (info)
+
+        if pd.isna(info.iloc[0, 0]) and nowYear < 2020:
+            info = info.drop(info.index[0])
+            info = info.reset_index(drop=True) # Reinicio de las filas y columnas
 
         if nowYear < 2020:
             tipo_indentidad = info.loc[1][0]
-            if tipo_indentidad == 'BANCOS DE DESARROLLO PRODUCTIVO':
+            if tipo_indentidad == 'BANCOS DE DESARROLLO PRODUCTIVO'or tipo_indentidad == 'BANCO DE DESARROLLO PRODUCTIVO':
                 info = info.replace('TOTAL SISTEMA', 'TSBDR')
-            elif tipo_indentidad == 'BANCOS MÚLTIPLES':
+            elif tipo_indentidad == 'BANCOS MÚLTIPLES': 
                 info = info.replace('TOTAL SISTEMA', 'TSBMU')
             elif tipo_indentidad == 'BANCOS PYME':
                 info = info.replace('TOTAL SISTEMA', 'TSBPY')
@@ -185,12 +225,18 @@ else:
             elif tipo_indentidad == 'INSTITUCIONES FINANCIERAS DE DESARROLLO':
                 info = info.replace('TOTAL SISTEMA', 'TSIFD')
 
-        if nowYear < 2020:
-            fecha_info = info.loc[3][0]
-            split = fecha_info.split()
-        else:
-            fecha_info = info.loc[2][0]
-            split = fecha_info.split()
+        if pd.isna(info.iloc[0, 0]):
+            info = info.drop(info.index[0])
+            info = info.reset_index(drop=True) # Reinicio de las filas y columnas
+
+        if pd.isna(info.iloc[0, 1]) and nowYear < 2020 and nowYear < 2020 and tipo_indentidad == 'COOPERATIVAS DE AHORRO Y CRÉDITO':
+            info = info.drop(info.index[0])
+            info = info.reset_index(drop=True) # Reinicio de las filas y columnas
+
+        print (info)
+
+        fecha_info = info.loc[2][0]
+        split = fecha_info.split()
 
         m = {
             'enero': "01",
@@ -258,7 +304,49 @@ else:
 
         # agregar la columna de grupos al dataframe
         info['Group'] = groups
+        #print (info)
 
+        # Esto seria para reparar los error que existen en sintaxis o espacios que se olvidan en la cuenta
+        if nowYear <= 2022:           
+            info[0] = info[0].replace('Prev.Cartera Incobrable/Cartera (1)', 'Prev. Cartera Incobrable/Cartera (1)')
+            info[0] = info[0].replace('Gastos de Administración/Total Egresos (4)', 'Gastos de Administración/Total Egresos(4)')
+            info[0] = info[0].replace('Oblig. Persones Jurídicas e Institucionales /Total Oblig. Público', 'Oblig. Personas Jurídicas e Institucionales /Total Oblig. Público')
+            info[0] = info[0].replace('Oblig. Pers. Jurídicas e Institucionales /Total Oblig. Público', 'Oblig. Personas Jurídicas e Institucionales /Total Oblig. Público')
+            info[0] = info[0].replace('Oblig. Personas. Naturales /Total Oblig. Público', 'Oblig. Personas Naturales /Total Oblig. Público')
+            info[0] = info[0].replace('Oblig.con el Público y con Empresas Públicas/Pasivo+Patrimonio', 'Oblig. con el Público y con Empresas Públicas/Pasivo+Patrimonio')
+            info[0] = info[0].replace('Oblig.con el Público/Pasivo+Patrimonio', 'Oblig. con el Público/Pasivo+Patrimonio')
+            info[0] = info[0].replace('Oblig.con Bancos y Ent. Fin./Pasivo+Patrimonio', 'Oblig. con Bancos y Ent. Fin./Pasivo+Patrimonio')
+            info[0] = info[0].replace('Obligaciones Subordinadas/Pasivo+Patrimonio', 'Oblig. Subordinadas/Pasivo+Patrimonio')
+            info[0] = info[0].replace('Cargos por Oblig.con el B.C.B./Oblig.con el B.C.B.', 'Cargos por Oblig. con el B.C.B./Oblig. con el B.C.B.')
+            info[0] = info[0].replace('Int.Deptos.Caja de Ahorro/Ob.Púb.Ctas.Ahorro', 'Int. Depósitos Caja de Ahorro/Oblig. Púb. Ctas. Ahorro')
+            info[0] = info[0].replace('Int.Depósitos Púb.a Plazo/Dptos.Púb.a Plazo', 'Int. Depósitos Púb. a Plazo/Depósitos Púb. a Plazo')
+            info[0] = info[0].replace('Int.Oblig.con Emp. públicas/Oblig.c/emp. públicas', 'Int. Oblig. con Emp. públicas/Oblig. c/emp. públicas')
+            info[0] = info[0].replace('Int.Oblig.Púb.a la Vista/Oblig.Púb. a la Vista', 'Int. Oblig. Púb. a la Vista/Oblig. Púb. a la Vista')
+            info[0] = info[0].replace('Int. penales Cartera en Ejecución Total / Productos cartera en Ejecución', 'Int. penales Cartera en Ejecución Total/Productos cartera en Ejecución')
+            info[0] = info[0].replace('Int. penales Cartera Vencida Total y en Ejecución Total / Productos cartera Vencida Total y en Ejecución Total', 'Int. penales Cartera Vencida Total y en Ejecución Total/Productos cartera Vencida Total y en Ejecución')
+            info[0] = info[0].replace('Int. penales Cartera Vencida Total / Productos cartera vencida total', 'Int. penales Cartera Vencida Total/Productos cartera vencida total')
+            info[0] = info[0].replace('Productos por Cartera Reprog. y Reestruct. Vencida y en Ejec. /Cartera Reprog. y Reestruct. Vencida y en Ejec.', 'Productos por Cartera Reprog. y Reestruct. Vencida y en Ejec./Cartera Reprog. y Reestruct. Vencida')
+            info[0] = info[0].replace('Productos por Cartera Reprog. y Reestruct. Vigente/ Cartera Reprog. y Reestruct. Vigente', 'Productos por Cartera Reprog. y Reestruct. Vigente/Cartera Reprog. y Reestruct. Vigente')
+            info[0] = info[0].replace('Productos por CarteraVencida y en Ejecución/Cartera Vencida y en Ejecución', 'Productos por Cartera Vencida y en Ejecución/Cartera Vencida y en Ejecución')
+            info[0] = info[0].replace('Productos por Cartera Vigente/Cartera Vigente.', 'Productos por Cartera Vigente/Cartera Vigente')
+            info[0] = info[0].replace('Activos líquidos/Depósitos corto plazo (5)', 'Activos líquidos/Pasivos de corto plazo (5)')
+            info[0] = info[0].replace('Margen Financiero en Activos ProductivosPromedio Neto de Contingente', 'Margen Financiero en Activos Productivos Promedio Neto de Contingente')
+            info[0] = info[0].replace('Gastos de Administración/Depositos(3)', 'Gastos de Administración/Depósitos (3)')
+            info[0] = info[0].replace('Result.de Operación Bruto/(Activo+Contingente)', 'Resultado de Operación Bruto/(Activo+Contingente)')
+            info[0] = info[0].replace('Gastos de Administración/Depósitos (3)', 'Gastos de Administración/Depósitos(3)')
+            info[0] = info[0].replace('Resultado de operación después de Incobrables /(Activo + Contingente)', 'Resultado de operación después de Incobrables/(Activo + Contingente)')
+            info[0] = info[0].replace('Result.de Operación Neto Antes de Impuestos/(Activo+Contingente)', 'Resultado de Operación Neto Antes de Impuestos/(Activo+Contingente)')
+            info[0] = info[0].replace('Result. de Operación Neto/(Activo + Contingente)', 'Resultado de Operación Neto/(Activo + Contingente)')
+            info[0] = info[0].replace('Result.Neto de la Gestión/(Activo+Contingente) (ROA)', 'Resultado Neto de la Gestión/(Activo+Contingente) (ROA)')
+            info[0] = info[0].replace('Result.Neto de la Gestión/Patrimonio (ROE)', 'Resultado Neto de la Gestión/Patrimonio (ROE)')
+            info[0] = info[0].replace('Ajustes netos por inflación y por diferencias de cambio/Activo+Conting. (2)', 'Ajustes netos por inflación y por diferencias de cambio/Activo+Conting.(2)')
+            info[0] = info[0].replace('Cargos por Incob.Netos de Recuper./Activo+Conting.', 'Cargos por Incob. Netos de Recuper./Activo+Conting.')
+            info[0] = info[0].replace('Deprec.y Desval.Bienes de Uso/Bienes de Uso-Terrenos.', 'Deprec.y Desval.Bienes de Uso/Bienes de Uso-Terrenos')
+            info[0] = info[0].replace('Deprec.y Desval.Bienes de Uso/Bienes de Uso-Terrenos', 'Deprec. y Desval. Bienes de Uso/Bienes de Uso-Terrenos')
+            info[0] = info[0].replace('Gastos de Administración/Activo+Contingente.', 'Gastos de Administración/Activo+Contingente')
+            info[0] = info[0].replace('Ing.Extraord.y de Gest.Ant.Netos/Activo+Conting.', 'Ing. Extraord. y de Gest. Ant. Netos/Activo+Conting.')
+            info[0] = info[0].replace('Otros Ingresos Operativos Netos/Activo+Contingente.', 'Otros Ingresos Operativos Netos/Activo+Contingente')
+            
         info = info.dropna(subset=[1])
         info = info.reset_index(drop=True) # Reinicio de las filas y columnas
 
@@ -266,6 +354,7 @@ else:
         info_indicadores = info_indicadores.dropna(subset=[0])
         #print(info_indicadores)
 
+        #Multiplicamos la tabla deacuerdo a las columnas o las entidas que se tenga
         info_indicadores_final = pd.concat([info_indicadores] * num_columnas, ignore_index=True)
 
         # Agregar datos iniciales al dataframe
@@ -286,6 +375,9 @@ else:
         datos_I['Fecha'] = fecha
         datos_I['Tipo de Institucion'] = tipo_indentidad
         datos_I['Nombre del Archivo'] = excel_I[name]
+
+        datos_I['Valor'] = pd.to_numeric(datos_I['Valor'], errors='coerce')
+        datos_I['Valor'] = datos_I['Valor'].round(4)
 
         # crear un objeto ExcelWriter
         writer = pd.ExcelWriter(excel_I[name], engine='xlsxwriter')
@@ -505,6 +597,8 @@ else:
         elif re.search(r'\b(Previsión específica para incobrabilidad de cartera en ejecución)\b', Columna):
             return '139.04'
         elif re.search(r'\b(Previsión especifica para incobrabilidad de cartera reprogramada o reestructurada en ejecución)\b', Columna):
+            return '139.07'
+        elif re.search(r'\b(Previsión específica para incobrabilidad de cartera reprogramada o reestructurada en ejecución)\b', Columna):
             return '139.07'
         elif Columna.endswith('(Previsión genérica para incobrabilidad de cartera por factores de riesgo adicional)'):
             return '139.08'
@@ -970,6 +1064,8 @@ else:
             return '980.00'
         elif re.search(r'\bPrevisiones por constituir sujetas a cronograma\b', Columna):
             return '869.90'
+        elif re.search(r'\bESTADO DE GANANCIAS Y PÉRDIDAS\b', Columna):
+            return '869.90'
         
 
     for name in range(len(excel_EF)):
@@ -1039,6 +1135,8 @@ else:
         out = str(m[split[3].lower()])
         fecha = split[5] + "-" +  out + "-" + split[1]
 
+        #print (info)
+
         if nowYear < 2020:
             # Borror la basura de las 7 lineas
             info.drop([0,1,2,3,4,5,6], axis=0, inplace=True)
@@ -1061,6 +1159,8 @@ else:
         info[0] = info[0].replace('CUENTAS CONTINGENTES DEUDORAS', 'Dimension1.1.1.1.1')
         info[0] = info[0].replace('CUENTAS DE ORDEN DEUDORAS', 'Dimension1.1.1.1.1.1')
         info[0] = info[0].replace('(+) INGRESOS FINANCIEROS', 'Dimension1.1.1.1.1.1.1')
+
+        #print (info)
 
         # inicializar variables
         group = None
@@ -1124,6 +1224,7 @@ else:
         info_estados[0] = info_estados[0].replace('PRODUCTOS DE CARTERA EN EJECUCIÓN', 'Cambiado20')
         info_estados[0] = info_estados[0].replace('PRODUCTOS DE CARTERA EN EJECUCIÓN REPROGRAMADA O REESTRUCTURADA', 'Cambiado21')
 
+        #print (info_estados)
         # Esto seria para reparar los error que existen en sintaxis o espacios que se olvidan en la cuenta
         if nowYear <= 2022:
             info_estados[0] = info_estados[0].replace('(=)RESULTADO NETO DE LA GESTIÓN', '(=) RESULTADO NETO DE LA GESTIÓN')
@@ -1143,7 +1244,7 @@ else:
             info_estados[0] = info_estados[0].replace('(=) RESULTADO DESPUES DE AJUSTE POR DIF. DE CAMBIO Y MANTENIM. DE VALOR', '(=) RESULTADO DESPUES DE AJUSTE POR DIFERENCIA DE CAMBIO Y MANTENIMIENTO DE VALOR')
             info_estados[0] = info_estados[0].replace('(=) RESULTADO ANTES DE IMPTOS. Y AJUSTE CONTABLE POR EFECTO DE INFLACIÓN', '(=) RESULTADO ANTES DE IMPUESTOS Y AJUSTE CONTABLE POR EFECTO DE INFLACIÓN')
 
-
+        #print (info_estados)
         #Aplicamos los codigos a las Cuentas
         info_estados['Código'] = info_estados.apply(assign_code, axis=1)
 
@@ -1171,6 +1272,11 @@ else:
         info_estados[0] = info_estados[0].replace('Cambiado21', 'PRODUCTOS DE CARTERA EN EJECUCIÓN REPROGRAMADA O REESTRUCTURADA')
         #print (info_estados)
 
+        palabra_buscar = "ESTADO DE SITUACIÓN PATRIMONIAL"
+
+        if palabra_buscar in info_estados.iloc[0, 0]:
+            info_estados = info_estados.drop(info_estados.index[0])
+            info_estados = info_estados.reset_index(drop=True) # Reinicio de las filas y columnas
 
         #Multiplicamos la tabla deacuerdo a las columnas o las entidas que se tenga
         info_estados_final = pd.concat([info_estados] * num_columnas, ignore_index=True)
@@ -1190,6 +1296,11 @@ else:
         datos_EF['Fecha'] = fecha
         datos_EF['Tipo de Institucion'] = tipo_indentidad
         datos_EF['Nombre del Archivo'] = excel_EF[name]
+
+        #print (datos_EF)
+        datos_EF['Valor'] = pd.to_numeric(datos_EF['Valor'], errors='coerce')
+        datos_EF['Valor'] = datos_EF['Valor'].round(4)
+        #print (datos_EF)
 
         # crear un objeto ExcelWriter
         writer = pd.ExcelWriter(excel_EF[name], engine='xlsxwriter')
